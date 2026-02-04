@@ -1,6 +1,6 @@
 # Meeting Schedules Parser
 
-[![CI](https://github.com/isalo/meeting-schedules-parser/actions/workflows/ci.yml/badge.svg)](https://github.com/nicecykor/meeting-schedules-parser/actions/workflows/ci.yml)
+[![CI](https://github.com/isalo/meeting-schedules-parser/actions/workflows/ci.yml/badge.svg)](https://github.com/isalo/meeting-schedules-parser/actions/workflows/ci.yml)
 [![Maven Central](https://img.shields.io/maven-central/v/net.cykor.jw.tools/meeting-schedules-parser)](https://central.sonatype.com/artifact/net.cykor.jw.tools/meeting-schedules-parser)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
