@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import net.cykor.jw.tools.parser.internal.LanguageSupport.LanguageConfig;
 import net.cykor.jw.tools.parser.model.MWBSchedule;
 import net.cykor.jw.tools.parser.model.WSchedule;
 import org.jsoup.nodes.Document;
@@ -45,6 +46,14 @@ public final class HtmlParser {
     Element h2 = doc.selectFirst("h2");
 
     if (h1 == null || h2 == null) {
+      return false;
+    }
+
+    // Check if h1 contains a date pattern (e.g., "4—10 ЛИСТОПАДА" or "November 4-10")
+    // Week dates contain digits and typically have a dash/em-dash
+    String h1Text = h1.text();
+    if (!h1Text.matches(".*\\d+.*[—–-].*\\d*.*")
+        && !h1Text.matches(".*\\d{1,2}\\s*[—–-]\\s*\\d{1,2}.*")) {
       return false;
     }
 
@@ -449,7 +458,9 @@ public final class HtmlParser {
   public static List<MWBSchedule> parseMwb(List<Document> htmlDocs, int year, String lang) {
     List<MWBSchedule> schedules = new ArrayList<>();
     for (Document doc : htmlDocs) {
-      schedules.add(parseMwbSchedule(doc, year, lang));
+      if (isValidMwbSchedule(doc)) {
+        schedules.add(parseMwbSchedule(doc, year, lang));
+      }
     }
     return schedules;
   }
@@ -557,28 +568,60 @@ public final class HtmlParser {
 
     Integer time = LanguageSupport.extractTime(src, lang);
 
-    Pattern typePattern = Pattern.compile("^(\\d+)\\.\\s*(.+?)(?:\\s*\\(|$)");
-    Matcher typeMatcher = typePattern.matcher(src);
-
     String type = null;
-    String fullTitle = src;
-    String extractedSrc = src;
+    String fullTitle = null;
+    String extractedSrc = null;
 
-    if (typeMatcher.find()) {
-      fullTitle = typeMatcher.group(1) + ". " + typeMatcher.group(2).trim();
-      type = typeMatcher.group(2).trim();
-    }
+    // Pattern: "N. Type (X min/хв). Description (reference)"
+    // Examples:
+    // "4. Починаємо розмову (4 хв). ВІД ДОМУ ДО ДОМУ. Господар каже... (lmd урок 2)"
+    // "1. «Про свою угоду він пам'ятає повік» (10 хв)"
+    LanguageConfig config = LanguageSupport.getConfig(lang);
+    String timePattern = config != null ? config.minutesPattern() : "(\\d+)\\s*min\\.?";
 
-    int parenStart = src.indexOf('(');
-    if (parenStart > 0) {
-      extractedSrc = src.substring(parenStart + 1);
-      int parenEnd = extractedSrc.lastIndexOf(')');
-      if (parenEnd > 0) {
-        extractedSrc = extractedSrc.substring(0, parenEnd);
+    // Match: number + type + optional time in parens + optional description
+    Pattern fullPattern =
+        Pattern.compile(
+            "^(\\d+)\\.\\s*(.+?)\\s*\\(" + timePattern + "\\)\\.?\\s*(.*?)$", Pattern.DOTALL);
+    Matcher fullMatcher = fullPattern.matcher(src);
+
+    if (fullMatcher.find()) {
+      String number = fullMatcher.group(1);
+      type = fullMatcher.group(2).trim();
+      fullTitle = number + ". " + type;
+      extractedSrc = fullMatcher.group(4).trim();
+
+      // If extractedSrc is empty, this might be a talk/gems without description
+      if (extractedSrc.isEmpty()) {
+        extractedSrc = null;
+      }
+    } else {
+      // Fallback: try simpler pattern for parts without time
+      Pattern simplePattern = Pattern.compile("^(\\d+)\\.\\s*(.+?)(?:\\s*\\(|$)");
+      Matcher simpleMatcher = simplePattern.matcher(src);
+
+      if (simpleMatcher.find()) {
+        String number = simpleMatcher.group(1);
+        type = simpleMatcher.group(2).trim();
+        fullTitle = number + ". " + type;
+
+        // Extract content after the type (everything in/after parentheses)
+        int typeEnd = simpleMatcher.end(2);
+        if (typeEnd < src.length()) {
+          String remaining = src.substring(typeEnd).trim();
+          if (remaining.startsWith("(") && remaining.endsWith(")")) {
+            extractedSrc = remaining.substring(1, remaining.length() - 1).trim();
+          } else if (!remaining.isEmpty()) {
+            extractedSrc = remaining;
+          }
+        }
+      } else {
+        fullTitle = src;
+        extractedSrc = src;
       }
     }
 
-    return new EnhancedSource(type, time, extractedSrc.trim(), fullTitle);
+    return new EnhancedSource(type, time, extractedSrc, fullTitle);
   }
 
   private static int nthIndexOf(String str, String substr, int n) {
