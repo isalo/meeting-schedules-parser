@@ -1,0 +1,172 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'signing'
+    id 'com.diffplug.spotless' version '6.25.0'
+    id 'net.ltgt.errorprone' version '3.1.0'
+}
+
+group = 'net.cykor.jw.tools'
+archivesBaseName = 'meeting-schedules-parser'
+version = '1.0.0'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+    withJavadocJar()
+    withSourcesJar()
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // HTML parsing
+    implementation 'org.jsoup:jsoup:1.17.2'
+    
+    // JSON serialization
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.0'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.0'
+    
+    // SQLite for JWPUB parsing
+    implementation 'org.xerial:sqlite-jdbc:3.45.2.0'
+    
+    // Compression (for JWPUB decryption)
+    implementation 'org.apache.commons:commons-compress:1.26.1'
+    
+    // Annotations
+    compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
+    
+    // Error Prone
+    errorprone 'com.google.errorprone:error_prone_core:2.26.1'
+    
+    // Testing
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.assertj:assertj-core:3.25.3'
+    testImplementation 'org.mockito:mockito-core:5.11.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.11.0'
+    
+    // WireMock for HTTP testing
+    testImplementation 'org.wiremock:wiremock:3.4.2'
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+}
+
+tasks.named('compileJava') {
+    options.compilerArgs += ['-Xlint:all', '-Werror']
+    options.errorprone {
+        disableWarningsInGeneratedCode = true
+        disable('MissingSummary')
+    }
+}
+
+spotless {
+    java {
+        importOrder()
+        removeUnusedImports()
+        googleJavaFormat('1.19.2')
+        formatAnnotations()
+        licenseHeaderFile rootProject.file('config/license-header.txt')
+    }
+}
+
+javadoc {
+    options {
+        encoding = 'UTF-8'
+        docEncoding = 'UTF-8'
+        charSet = 'UTF-8'
+        links 'https://docs.oracle.com/en/java/javase/21/docs/api/'
+        addStringOption('Xdoclint:none', '-quiet')
+    }
+    if (JavaVersion.current().isJava9Compatible()) {
+        options.addBooleanOption('html5', true)
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            
+            pom {
+                name = 'Meeting Schedules Parser'
+                description = 'Java library for parsing JW Meeting Workbook and Watchtower Study schedules from JWPUB and EPUB files'
+                url = 'https://github.com/nicecykor/meeting-schedules-parser'
+                inceptionYear = '2024'
+                
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                
+                developers {
+                    developer {
+                        id = 'nicecykor'
+                        name = 'Cykor'
+                        email = 'info@cykor.net'
+                    }
+                }
+                
+                scm {
+                    connection = 'scm:git:git://github.com/nicecykor/meeting-schedules-parser.git'
+                    developerConnection = 'scm:git:ssh://github.com:nicecykor/meeting-schedules-parser.git'
+                    url = 'https://github.com/nicecykor/meeting-schedules-parser'
+                }
+            }
+        }
+    }
+    
+    repositories {
+        maven {
+            name = 'CentralPortal'
+            url = 'https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/'
+            
+            credentials {
+                username = findProperty('centralUsername') ?: System.getenv('CENTRAL_USERNAME')
+                password = findProperty('centralPassword') ?: System.getenv('CENTRAL_PASSWORD')
+            }
+        }
+        
+        maven {
+            name = 'GitHubPackages'
+            url = 'https://maven.pkg.github.com/nicecykor/meeting-schedules-parser'
+            credentials {
+                username = findProperty('gpr.user') ?: System.getenv('GITHUB_ACTOR')
+                password = findProperty('gpr.key') ?: System.getenv('GITHUB_TOKEN')
+            }
+        }
+    }
+}
+
+signing {
+    def signingKey = findProperty('signing.key') ?: System.getenv('GPG_SIGNING_KEY')
+    def signingPassword = findProperty('signing.password') ?: System.getenv('GPG_SIGNING_PASSWORD')
+    
+    if (signingKey && signingPassword) {
+        useInMemoryPgpKeys(signingKey, signingPassword)
+        sign publishing.publications.mavenJava
+    }
+}
+
+tasks.withType(Sign) {
+    onlyIf { 
+        def signingKey = findProperty('signing.key') ?: System.getenv('GPG_SIGNING_KEY')
+        signingKey != null && !version.endsWith('SNAPSHOT')
+    }
+}
+
+tasks.register('printVersion') {
+    doLast {
+        println version
+    }
+}
