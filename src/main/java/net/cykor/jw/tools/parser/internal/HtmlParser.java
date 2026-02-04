@@ -561,63 +561,77 @@ public final class HtmlParser {
     }
   }
 
+  /**
+   * Extracts enhanced source information from part text. Matches sws2apps/meeting-schedules-parser
+   * logic for consistency.
+   *
+   * <p>Pattern: "N. Title (X min/хв). Description" or "N．Title（X min）Description" Examples: - "4.
+   * Починаємо розмову (4 хв). ВІД ДОМУ ДО ДОМУ. Господар каже... (lmd урок 2)" - "1. «Про свою
+   * угоду він пам'ятає повік» (10 хв)" - "4. Starting a Conversation (1 min.) HOUSE TO HOUSE. The
+   * householder is busy."
+   */
   private static EnhancedSource extractSourceEnhanced(String src, String lang) {
     if (src == null || src.isEmpty()) {
       return new EnhancedSource(null, null, null, src);
     }
 
-    Integer time = LanguageSupport.extractTime(src, lang);
+    // Remove zero-width spaces (matches sws: src.replace(/(\u200B)*(\d+)(\u200B)*/g, '$2'))
+    String cleanSrc = src.replaceAll("[\u200B\u200F\u2060\uFEFF]", "");
 
-    String type = null;
-    String fullTitle = null;
-    String extractedSrc = null;
-
-    // Pattern: "N. Type (X min/хв). Description (reference)"
-    // Examples:
-    // "4. Починаємо розмову (4 хв). ВІД ДОМУ ДО ДОМУ. Господар каже... (lmd урок 2)"
-    // "1. «Про свою угоду він пам'ятає повік» (10 хв)"
     LanguageConfig config = LanguageSupport.getConfig(lang);
-    String timePattern = config != null ? config.minutesPattern() : "(\\d+)\\s*min\\.?";
+    String variations = config != null ? config.minutesSeparatorVariations() : "min\\.";
 
-    // Match: number + type + optional time in parens + optional description
-    Pattern fullPattern =
+    // Main pattern matching sws: (.+?)(?:: )?[（(](\d+)(?: |  | )?(?:${variations})[）)](?: : | |.
+    // )?(.+?)?$
+    // This handles both regular () and fullwidth （）parentheses
+    Pattern mainPattern =
         Pattern.compile(
-            "^(\\d+)\\.\\s*(.+?)\\s*\\(" + timePattern + "\\)\\.?\\s*(.*?)$", Pattern.DOTALL);
-    Matcher fullMatcher = fullPattern.matcher(src);
+            "(.+?)(?:: )?[（(](\\d+)(?: | {2}| )?(?:" + variations + ")[）)](?:: | |\\. )?(.+?)?$",
+            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
 
-    if (fullMatcher.find()) {
-      String number = fullMatcher.group(1);
-      type = fullMatcher.group(2).trim();
-      fullTitle = number + ". " + type;
-      extractedSrc = fullMatcher.group(4).trim();
+    Matcher mainMatcher = mainPattern.matcher(cleanSrc);
 
-      // If extractedSrc is empty, this might be a talk/gems without description
-      if (extractedSrc.isEmpty()) {
-        extractedSrc = null;
+    String fullTitle;
+    Integer time = null;
+    String extractedSrc = null;
+    String type;
+
+    if (mainMatcher.find()) {
+      fullTitle = mainMatcher.group(1).trim();
+      try {
+        time = Integer.parseInt(mainMatcher.group(2).trim());
+      } catch (NumberFormatException e) {
+        // ignore
+      }
+      extractedSrc = mainMatcher.group(3);
+      if (extractedSrc != null) {
+        extractedSrc = extractedSrc.trim();
+        if (extractedSrc.isEmpty()) {
+          extractedSrc = null;
+        }
+      }
+
+      // Extract type from fullTitle: pattern ^(:?\d+)(?:．|.\s)(.+?)$
+      // This separates the index number from the actual title
+      Pattern indexPattern = Pattern.compile("^:?(\\d+)(?:．|\\.\\s?)(.+?)$", Pattern.UNICODE_CASE);
+      Matcher indexMatcher = indexPattern.matcher(fullTitle);
+
+      if (indexMatcher.find()) {
+        type = indexMatcher.group(2).trim();
+      } else {
+        type = fullTitle;
       }
     } else {
-      // Fallback: try simpler pattern for parts without time
-      Pattern simplePattern = Pattern.compile("^(\\d+)\\.\\s*(.+?)(?:\\s*\\(|$)");
-      Matcher simpleMatcher = simplePattern.matcher(src);
+      // Fallback: no time pattern found, treat whole string as fullTitle
+      fullTitle = cleanSrc;
+      type = cleanSrc;
 
-      if (simpleMatcher.find()) {
-        String number = simpleMatcher.group(1);
-        type = simpleMatcher.group(2).trim();
-        fullTitle = number + ". " + type;
+      // Try to extract index from fullTitle
+      Pattern indexPattern = Pattern.compile("^:?(\\d+)(?:．|\\.\\s?)(.+?)$", Pattern.UNICODE_CASE);
+      Matcher indexMatcher = indexPattern.matcher(fullTitle);
 
-        // Extract content after the type (everything in/after parentheses)
-        int typeEnd = simpleMatcher.end(2);
-        if (typeEnd < src.length()) {
-          String remaining = src.substring(typeEnd).trim();
-          if (remaining.startsWith("(") && remaining.endsWith(")")) {
-            extractedSrc = remaining.substring(1, remaining.length() - 1).trim();
-          } else if (!remaining.isEmpty()) {
-            extractedSrc = remaining;
-          }
-        }
-      } else {
-        fullTitle = src;
-        extractedSrc = src;
+      if (indexMatcher.find()) {
+        type = indexMatcher.group(2).trim();
       }
     }
 

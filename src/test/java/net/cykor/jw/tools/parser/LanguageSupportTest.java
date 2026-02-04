@@ -26,7 +26,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 class LanguageSupportTest {
 
   @ParameterizedTest
-  @ValueSource(strings = {"E", "U", "P", "e", "u", "p"})
+  @ValueSource(strings = {"E", "K", "P", "e", "k", "p"})
   void isEnhancedParsingAvailable_supportedLanguages_returnsTrue(String languageCode) {
     assertThat(LanguageSupport.isEnhancedParsingAvailable(languageCode)).isTrue();
   }
@@ -44,7 +44,7 @@ class LanguageSupportTest {
 
   @Test
   void getSupportedLanguages_returnsNonEmptySet() {
-    assertThat(LanguageSupport.getSupportedLanguages()).isNotEmpty().contains("E", "U", "P");
+    assertThat(LanguageSupport.getSupportedLanguages()).isNotEmpty().contains("E", "K", "P");
   }
 
   @ParameterizedTest
@@ -61,7 +61,7 @@ class LanguageSupportTest {
   }
 
   @ParameterizedTest
-  @CsvSource({"'10 min. talk',E,10", "'5 хв. виступ',U,5", "'15 min.',P,15"})
+  @CsvSource({"'10 min. talk',E,10", "'5 хв. виступ',K,5", "'15 min.',P,15"})
   void extractTime_variousFormats_extractsMinutes(String text, String lang, int expectedMinutes) {
     Integer result = LanguageSupport.extractTime(text, lang);
     assertThat(result).isEqualTo(expectedMinutes);
@@ -72,9 +72,9 @@ class LanguageSupportTest {
     "january,E,1",
     "february,E,2",
     "december,E,12",
-    "січня,U,1",
-    "лютого,U,2",
-    "грудня,U,12",
+    "січня,K,1",
+    "лютого,K,2",
+    "грудня,K,12",
     "stycznia,P,1",
     "lutego,P,2",
     "grudnia,P,12"

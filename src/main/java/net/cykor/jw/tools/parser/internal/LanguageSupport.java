@@ -39,19 +39,21 @@ public final class LanguageSupport {
             "English",
             "january|february|march|april|may|june|july|august|september|october|november|december",
             "(\\d+)\\s*min\\.?",
+            "min\\.",
             Pattern.compile(
                 "(?i)(january|february|march|april|may|june|july|august|september|october|november|december)\\s+(\\d{1,2})(?:-(\\d{1,2}))?"),
             Pattern.compile(
                 "(?i)Study Article\\s+(\\d+):\\s*(\\w+)\\s+(\\d{1,2})(?:-(\\d{1,2}))?,?\\s*(\\d{4})")));
 
     LANGUAGES.put(
-        "U",
+        "K",
         new LanguageConfig(
-            "U",
+            "K",
             "Ukrainian",
             "січня|лютого|березня|квітня|травня|червня|липня|серпня|вересня|жовтня|листопада|грудня|"
                 + "січень|лютий|березень|квітень|травень|червень|липень|серпень|вересень|жовтень|листопад|грудень",
             "(\\d+)\\s*хв\\.?",
+            "хв",
             Pattern.compile(
                 "(?iu)(\\d{1,2})(?:-(\\d{1,2}))?\\s+(січня|лютого|березня|квітня|травня|червня|липня|серпня|вересня|жовтня|листопада|грудня)"),
             Pattern.compile(
@@ -65,6 +67,7 @@ public final class LanguageSupport {
             "stycznia|lutego|marca|kwietnia|maja|czerwca|lipca|sierpnia|września|października|listopada|grudnia|"
                 + "styczeń|luty|marzec|kwiecień|maj|czerwiec|lipiec|sierpień|wrzesień|październik|listopad|grudzień",
             "(\\d+)\\s*min\\.?",
+            "min\\.",
             Pattern.compile(
                 "(?iu)(\\d{1,2})(?:-(\\d{1,2}))?\\s+(stycznia|lutego|marca|kwietnia|maja|czerwca|lipca|sierpnia|września|października|listopada|grudnia)"),
             Pattern.compile(
@@ -91,7 +94,10 @@ public final class LanguageSupport {
     return LANGUAGES.get(languageCode.toUpperCase(Locale.ROOT));
   }
 
-  /** Extracts song number from text. */
+  /**
+   * Extracts song number from text. Returns Integer if valid song number (≤162), otherwise the
+   * original text.
+   */
   public static Object extractSongNumber(String text) {
     if (text == null || text.isEmpty()) {
       return null;
@@ -101,7 +107,12 @@ public final class LanguageSupport {
     Matcher matcher = pattern.matcher(text);
     if (matcher.find()) {
       try {
-        return Integer.parseInt(matcher.group(1));
+        int songNumber = Integer.parseInt(matcher.group(1));
+        // Only return as song number if within valid range (1-162)
+        if (songNumber > 0 && songNumber <= MAX_SONG_NUMBER) {
+          return songNumber;
+        }
+        return text;
       } catch (NumberFormatException e) {
         return text;
       }
@@ -171,7 +182,7 @@ public final class LanguageSupport {
       };
     }
 
-    if ("U".equalsIgnoreCase(languageCode)) {
+    if ("K".equalsIgnoreCase(languageCode)) {
       return switch (lower) {
         case "січня", "січень" -> 1;
         case "лютого", "лютий" -> 2;
@@ -210,12 +221,16 @@ public final class LanguageSupport {
     return 0;
   }
 
+  /** Maximum song number in the songbook. */
+  private static final int MAX_SONG_NUMBER = 162;
+
   /** Configuration for a specific language. */
   public record LanguageConfig(
       String code,
       String name,
       String monthVariations,
       String minutesPattern,
+      String minutesSeparatorVariations,
       Pattern mwbDatePattern,
       Pattern wStudyDatePattern) {}
 }
