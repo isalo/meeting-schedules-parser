@@ -26,7 +26,7 @@
  * <h2>Main Classes</h2>
  *
  * <ul>
- *   <li>{@link net.cykor.jw.tools.parser.MeetingSchedulesParser} - Main entry point for parsing
+ *   <li>{@link net.cykor.jw.tools.parser.MeetingScheduleParser} - Main entry point for parsing
  *   <li>{@link net.cykor.jw.tools.parser.ParseResult} - Result containing parsed schedules
  *   <li>{@link net.cykor.jw.tools.parser.model.MWBSchedule} - Meeting Workbook schedule data
  *   <li>{@link net.cykor.jw.tools.parser.model.WSchedule} - Watchtower Study schedule data
@@ -35,7 +35,7 @@
  * <h2>Quick Start</h2>
  *
  * <pre>{@code
- * MeetingSchedulesParser parser = MeetingSchedulesParser.create();
+ * MeetingScheduleParser parser = MeetingScheduleParser.create();
  * ParseResult result = parser.parse(Path.of("mwb_E_202401.jwpub"));
  *
  * // Access schedules
@@ -47,6 +47,6 @@
  * String json = result.toJson();
  * }</pre>
  *
- * @see net.cykor.jw.tools.parser.MeetingSchedulesParser
+ * @see net.cykor.jw.tools.parser.MeetingScheduleParser
  */
 package net.cykor.jw.tools.parser;

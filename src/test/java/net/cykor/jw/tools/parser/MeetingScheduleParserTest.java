@@ -22,31 +22,31 @@ import net.cykor.jw.tools.parser.exception.UnsupportedFormatException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class MeetingSchedulesParserTest {
+class MeetingScheduleParserTest {
 
-  private MeetingSchedulesParser parser;
+  private MeetingScheduleParser parser;
 
   @BeforeEach
   void setUp() {
-    parser = MeetingSchedulesParser.create();
+    parser = MeetingScheduleParser.create();
   }
 
   @Test
   void create_defaultOptions_returnsParser() {
-    MeetingSchedulesParser result = MeetingSchedulesParser.create();
+    MeetingScheduleParser result = MeetingScheduleParser.create();
     assertThat(result).isNotNull();
   }
 
   @Test
   void create_customOptions_returnsParser() {
     ParserOptions options = ParserOptions.builder().strict(true).build();
-    MeetingSchedulesParser result = MeetingSchedulesParser.create(options);
+    MeetingScheduleParser result = MeetingScheduleParser.create(options);
     assertThat(result).isNotNull();
   }
 
   @Test
   void create_nullOptions_usesDefaults() {
-    MeetingSchedulesParser result = MeetingSchedulesParser.create(null);
+    MeetingScheduleParser result = MeetingScheduleParser.create(null);
     assertThat(result).isNotNull();
   }
 

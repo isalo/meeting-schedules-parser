@@ -43,7 +43,7 @@ import net.cykor.jw.tools.parser.internal.JwpubParser;
  *
  * <pre>{@code
  * // Parse from file
- * MeetingSchedulesParser parser = MeetingSchedulesParser.create();
+ * MeetingScheduleParser parser = MeetingScheduleParser.create();
  * ParseResult result = parser.parse(Path.of("mwb_E_202401.jwpub"));
  *
  * // Parse from URL
@@ -62,11 +62,11 @@ import net.cykor.jw.tools.parser.internal.JwpubParser;
  * @see ParseResult
  * @see ParserOptions
  */
-public final class MeetingSchedulesParser {
+public final class MeetingScheduleParser {
 
   private final ParserOptions options;
 
-  private MeetingSchedulesParser(ParserOptions options) {
+  private MeetingScheduleParser(ParserOptions options) {
     this.options = options;
   }
 
@@ -75,8 +75,8 @@ public final class MeetingSchedulesParser {
    *
    * @return new parser instance
    */
-  public static MeetingSchedulesParser create() {
-    return new MeetingSchedulesParser(ParserOptions.defaults());
+  public static MeetingScheduleParser create() {
+    return new MeetingScheduleParser(ParserOptions.defaults());
   }
 
   /**
@@ -85,8 +85,8 @@ public final class MeetingSchedulesParser {
    * @param options parser options
    * @return new parser instance
    */
-  public static MeetingSchedulesParser create(ParserOptions options) {
-    return new MeetingSchedulesParser(options != null ? options : ParserOptions.defaults());
+  public static MeetingScheduleParser create(ParserOptions options) {
+    return new MeetingScheduleParser(options != null ? options : ParserOptions.defaults());
   }
 
   /**

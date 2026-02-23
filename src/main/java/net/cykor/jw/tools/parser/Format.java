@@ -20,7 +20,7 @@ import java.util.Locale;
 /**
  * Publication format types supported by the parser.
  *
- * @see MeetingSchedulesParser
+ * @see MeetingScheduleParser
  */
 public enum Format {
   /** JWPUB format (encrypted SQLite database inside ZIP) */
