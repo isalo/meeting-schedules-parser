@@ -10,7 +10,7 @@ group = 'net.cykor.jw.tools'
 base {
     archivesName = 'meeting-schedules-parser'
 }
-version = '1.0.1'
+version = '1.0.2'
 
 java {
     toolchain {
