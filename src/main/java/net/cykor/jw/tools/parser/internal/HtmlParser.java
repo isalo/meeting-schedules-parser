@@ -586,7 +586,7 @@ public final class HtmlParser {
     // This handles both regular () and fullwidth （）parentheses
     Pattern mainPattern =
         Pattern.compile(
-            "(.+?)(?:: )?[（(](\\d+)(?: | {2}| )?(?:" + variations + ")[）)](?:: | |\\. )?(.+?)?$",
+            "(.+?)(?:: )?[（(](\\d+)\\s*(?:" + variations + ")[）)](?:: | |\\. )?(.+?)?$",
             Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
 
     Matcher mainMatcher = mainPattern.matcher(cleanSrc);
