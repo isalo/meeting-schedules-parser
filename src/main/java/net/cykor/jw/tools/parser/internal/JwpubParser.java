@@ -377,38 +377,44 @@ public final class JwpubParser {
 
   private static String getRawContent(byte[] data, KeyIv keyIv)
       throws MalformedPublicationException {
-    try {
-      byte[] decrypted = decryptAes128Cbc(data, keyIv.key(), keyIv.iv());
+    Exception firstError = null;
 
-      try (ByteArrayInputStream bis = new ByteArrayInputStream(decrypted);
-          InflaterInputStream iis = new InflaterInputStream(bis, new Inflater(true));
-          ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+    // Try all 4 combinations of (decrypt | plain) x (raw deflate | zlib-wrapped).
+    // Different JWPUB publications use different encodings; this makes the
+    // parser robust to any of them without requiring upfront detection.
+    for (int attempt = 0; attempt < 4; attempt++) {
+      boolean decrypt = attempt < 2;
+      boolean nowrap = (attempt % 2 == 0);
 
-        byte[] buffer = new byte[4096];
-        int len;
-        while ((len = iis.read(buffer)) != -1) {
-          bos.write(buffer, 0, len);
+      Inflater inflater = new Inflater(nowrap);
+      try {
+        byte[] input = decrypt ? decryptAes128Cbc(data, keyIv.key(), keyIv.iv()) : data;
+
+        try (ByteArrayInputStream bis = new ByteArrayInputStream(input);
+            InflaterInputStream iis = new InflaterInputStream(bis, inflater);
+            ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+
+          byte[] buffer = new byte[4096];
+          int len;
+          while ((len = iis.read(buffer)) != -1) {
+            bos.write(buffer, 0, len);
+          }
+
+          return bos.toString(StandardCharsets.UTF_8);
         }
-
-        return bos.toString(StandardCharsets.UTF_8);
-      }
-    } catch (Exception e) {
-      try (ByteArrayInputStream bis = new ByteArrayInputStream(data);
-          InflaterInputStream iis = new InflaterInputStream(bis);
-          ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
-
-        byte[] buffer = new byte[4096];
-        int len;
-        while ((len = iis.read(buffer)) != -1) {
-          bos.write(buffer, 0, len);
+      } catch (Exception e) {
+        if (firstError == null) {
+          firstError = e;
         }
-
-        return bos.toString(StandardCharsets.UTF_8);
-      } catch (IOException fallbackError) {
-        throw new MalformedPublicationException(
-            ErrorCode.DECRYPTION_FAILED, "Failed to decrypt content", e);
+      } finally {
+        // InflaterInputStream does not close inflaters passed to its constructor;
+        // release native resources explicitly to avoid off-heap leaks.
+        inflater.end();
       }
     }
+
+    throw new MalformedPublicationException(
+        ErrorCode.DECRYPTION_FAILED, "Failed to decode content", firstError);
   }
 
   private static byte[] decryptAes128Cbc(byte[] data, String keyHex, String ivHex)
