@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-04-29
+
+### Fixed
+
+- Incremented version to 1.0.3 as 1.0.2 was already published.
+
+## [1.0.2] - 2024-XX-XX
+
+### Added
+
+- Performance improvements and bug fixes.
+
+## [1.0.1] - 2024-XX-XX
+
+### Added
+
+- Minor enhancements.
+
 ## [1.0.0] - 2024-XX-XX
 
 ### Added
