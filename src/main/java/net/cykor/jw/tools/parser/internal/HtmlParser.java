@@ -69,8 +69,33 @@ public final class HtmlParser {
       return false;
     }
 
+    // A valid Watchtower TOC has <h3> headings each followed by a sibling
+    // element containing an <a href="..."> link to a study article (xhtml/html).
+    // Plain presence of <h3> is not enough: supplementary "extracted" pages
+    // may also contain <h3> elements without article links.
     Elements h3s = doc.select("h3");
-    return !h3s.isEmpty();
+    if (h3s.isEmpty()) {
+      return false;
+    }
+    for (Element h3 : h3s) {
+      Element sibling = h3.nextElementSibling();
+      if (sibling == null) {
+        continue;
+      }
+      Element link = sibling.selectFirst("a[href]");
+      if (link == null) {
+        continue;
+      }
+      String href = link.attr("href").toLowerCase(java.util.Locale.ROOT);
+      int hash = href.indexOf('#');
+      if (hash >= 0) {
+        href = href.substring(0, hash);
+      }
+      if (href.endsWith(".xhtml") || href.endsWith(".html") || href.endsWith(".htm")) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Extracts week date from MWB HTML. */
