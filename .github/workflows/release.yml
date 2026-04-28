@@ -30,7 +30,7 @@ jobs:
       - name: Validate version
         run: |
           TAG_VERSION=${GITHUB_REF#refs/tags/v}
-          GRADLE_VERSION=$(./gradlew printVersion -q)
+          GRADLE_VERSION=$(./gradlew printVersion -q | tail -n 1)
           if [ "$TAG_VERSION" != "$GRADLE_VERSION" ]; then
             echo "Version mismatch: Tag=$TAG_VERSION, Gradle=$GRADLE_VERSION"
             exit 1
